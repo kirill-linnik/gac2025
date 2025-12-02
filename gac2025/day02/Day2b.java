@@ -18,11 +18,7 @@ public class Day2b extends Base {
                 for ( int j = 1; j <= numberLength / 2; j++ ) {
                     if ( numberLength % j == 0 ) {
                         String segment = number.substring(0, j);
-                        StringBuilder repeated = new StringBuilder();
-                        int repeatCount = numberLength / j;
-                        for ( int k = 0; k < repeatCount; k++ ) {
-                            repeated.append(segment);
-                        }
+                        String repeated = segment.repeat(numberLength / j);
                         if ( repeated.toString().equals(number) ) {
                             result += i;
                             break;
