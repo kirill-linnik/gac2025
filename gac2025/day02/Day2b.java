@@ -19,7 +19,7 @@ public class Day2b extends Base {
                     if ( numberLength % j == 0 ) {
                         String segment = number.substring(0, j);
                         String repeated = segment.repeat(numberLength / j);
-                        if ( repeated.toString().equals(number) ) {
+                        if ( repeated.equals(number) ) {
                             result += i;
                             break;
                         }
