@@ -7,10 +7,26 @@ public class Day3b extends Base {
     
     @Override
     public void solve() {
-        List<String> lines = readLines("gac2025/day03/input.txt");
+        List<String> lines = readLines("gac2025/day03/input-b.txt");
         
-        // TODO: Implement solution for Day 3 Part B
-        System.out.println("Day 3 Part B - Solution not yet implemented");
+        long totalVoltage = 0;
+        for (String line : lines) {
+            short currentIndex = 0;
+            StringBuilder voltageBuilder = new StringBuilder();
+            for ( int i = 0; i < 12; i++ ) {
+                for ( int j = 9; j >= 0; j-- ) {
+                    int index = line.indexOf(String.valueOf(j), currentIndex);
+                    if ( index == -1 || index > line.length() - 12 + voltageBuilder.length() ) {
+                        continue;
+                    }
+                    currentIndex = (short)(index + 1);
+                    voltageBuilder.append(j);
+                    break;
+                }
+            }
+            totalVoltage += Long.parseLong(voltageBuilder.toString());
+        }
+        System.out.println(totalVoltage);
     }
     
     public static void main(String[] args) {
