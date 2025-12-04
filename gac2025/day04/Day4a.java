@@ -7,7 +7,7 @@ public class Day4a extends Base {
     
     @Override
     public void solve() {
-        List<String> lines = readLines("gac2025/day04/input.txt");
+        List<String> lines = readLines("gac2025/day04/input-a.txt");
         
         // TODO: Implement solution for Day 4 Part A
         System.out.println("Day 4 Part A - Solution not yet implemented");
