@@ -7,10 +7,54 @@ public class Day4b extends Base {
     
     @Override
     public void solve() {
-        List<String> lines = readLines("gac2025/day04/input.txt");
+        List<String> lines = readLines("gac2025/day04/input-b.txt");
         
-        // TODO: Implement solution for Day 4 Part B
-        System.out.println("Day 4 Part B - Solution not yet implemented");
+        char[][] positions = new char[lines.size()][lines.get(0).length()];
+        for (int i = 0; i < lines.size(); i++) {
+            positions[i] = lines.get(i).toCharArray();
+        }
+
+        int totalResult = 0;
+        int result = 0;
+        do {
+            result = 0;
+            for (int i = 0; i < positions.length; i++){
+                for (int j = 0; j < positions[i].length; j++) {
+                    if ( positions[i][j] != '@') {
+                        continue;
+                    }
+                    short numberOfPapersAround = getNumberOfPapersAround(positions, i, j);
+                    if (numberOfPapersAround < 4) {
+                        result++;
+                        positions[i][j] = 'X';
+                    }
+                }
+            }
+            totalResult += result;
+            System.out.println("Iteration Result: " + result);
+        } 
+        while (result > 0);
+
+        System.out.println("Result: " + totalResult);
+        for (int i = 0; i < positions.length; i++) {
+            System.out.println(positions[i]);
+        }
+    }
+
+    private short getNumberOfPapersAround(char[][] positions, int row, int col) {
+        short count = 0;
+        for ( int i = Math.max(row-1, 0); i <= Math.min(row+1, positions.length-1); i++) {
+            for ( int j = Math.max(col-1, 0); j <= Math.min(col+1, positions[i].length-1); j++) {
+                if (i == row && j == col) {
+                    continue;
+                }
+                char positionChar = positions[i][j];
+                if (positionChar == '@' || positionChar == 'X') {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
     
     public static void main(String[] args) {
