@@ -5,6 +5,9 @@ import java.util.List;
 
 public class Day4b extends Base {
     
+    private static final char PAPER = '@';
+    private static final char MARKED_PAPER = 'X';
+    
     @Override
     public void solve() {
         List<String> lines = readLines("gac2025/day04/input-b.txt");
@@ -20,21 +23,20 @@ public class Day4b extends Base {
             result = 0;
             for (int i = 0; i < positions.length; i++){
                 for (int j = 0; j < positions[i].length; j++) {
-                    if ( positions[i][j] != '@') {
+                    if ( positions[i][j] != PAPER) {
                         continue;
                     }
                     short numberOfPapersAround = getNumberOfPapersAround(positions, i, j);
                     if (numberOfPapersAround < 4) {
                         result++;
-                        positions[i][j] = 'X';
+                        positions[i][j] = MARKED_PAPER;
                     }
                 }
             }
             totalResult += result;
-            System.out.println("Iteration Result: " + result);
-        } 
+        }
         while (result > 0);
-
+        
         System.out.println("Result: " + totalResult);
         for (int i = 0; i < positions.length; i++) {
             System.out.println(positions[i]);
@@ -49,7 +51,7 @@ public class Day4b extends Base {
                     continue;
                 }
                 char positionChar = positions[i][j];
-                if (positionChar == '@' || positionChar == 'X') {
+                if (positionChar == PAPER ) {
                     count++;
                 }
             }
