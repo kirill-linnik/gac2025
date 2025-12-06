@@ -21,7 +21,7 @@ public class Day6a extends Base {
                     continue;
                 }
                 try {
-                    Long number = Long.parseLong(part);
+                    Long number = Long.valueOf(part);
                     if (input.size() <= index) {
                         input.add(new ArrayList<>());
                     }

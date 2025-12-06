@@ -46,7 +46,7 @@ public class Day6b extends Base {
                     sb.append(ch1);
                 }
                 if ( sb.length() > 0 ){
-                    Long number = Long.parseLong(sb.toString());
+                    Long number = Long.valueOf(sb.toString());
                     columnNumbers.add(number);
                 }
             }
