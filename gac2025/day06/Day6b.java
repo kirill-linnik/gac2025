@@ -15,15 +15,15 @@ public class Day6b extends Base {
         
         String lastLine = lines.get(lines.size() - 1);
         char[] lastLineChars = lastLine.toCharArray();
-        int columnStart = 0;
-        int columnEnd = 0;
+        
         for ( int i = 0; i < lastLineChars.length; i++ ) {
             char ch = lastLineChars[i];
             if ( ch == ' ' ){
                 continue;
             }
 
-            columnStart = i;
+            int columnStart = i;
+            int columnEnd = i;
             for ( int j = i + 1; j < lastLineChars.length; j++ ) {
                 char ch2 = lastLineChars[j];
                 if ( ch2 == ' ' ){
@@ -59,6 +59,8 @@ public class Day6b extends Base {
                 long tempResult = columnNumbers.stream().reduce(1L, (a, b) -> a * b);
                 result += tempResult;
             }
+
+            i = columnEnd;
         }
 
         System.err.println("Result: " + result);
