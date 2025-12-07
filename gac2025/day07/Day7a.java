@@ -16,8 +16,8 @@ public class Day7a extends Base {
 
         int splitterCount = 0;
         int startingPoint = lines.get(0).indexOf('S');
-        for ( int i = 1; i < grid.length; i++ ) {
-            if ( i == 1 ){
+        for ( int i = 0; i < grid.length; i++ ) {
+            if ( i == 0 ){
                 if ( grid[i+1][startingPoint] == '.' ){
                     grid[i+1][startingPoint] = '|';
                 }
