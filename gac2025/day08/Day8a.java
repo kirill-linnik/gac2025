@@ -26,16 +26,18 @@ public class Day8a extends Base {
         allPairs.sort((p1, p2) -> Double.compare(p1.distance, p2.distance));
 
         int currentConnectionId = 1;
-        int connectionsMade = 0;
-        int maxConnections = 10;
-        for ( PairWithDistance pair : allPairs ) {
+        int maxConnections = 1000;
+        for ( int i = 0; i < maxConnections; i++ ) {
+            PairWithDistance pair = allPairs.get(i);
             JunctionBox boxA = pair.boxA;
             JunctionBox boxB = pair.boxB;
+            System.out.println("Considering pair: " + pair);
 
             if ( !canConnect(boxA, boxB) ) {
+                System.out.println(" - Cannot connect, skipping.");
                 continue;
             }
-            connectionsMade++;
+            System.out.println(" - Connecting boxes.");
 
             if ( boxA.connectionId == 0 && boxB.connectionId == 0 ) {
                 boxA.connectionId = currentConnectionId;
@@ -48,23 +50,40 @@ public class Day8a extends Base {
             else if ( boxA.connectionId == 0 && boxB.connectionId != 0 ) {
                 boxA.connectionId = boxB.connectionId;
             }
-
-            if ( connectionsMade >= maxConnections ) {
-                break;
+            else {
+                int oldId = boxB.connectionId;
+                int newId = boxA.connectionId;
+                for ( JunctionBox box : boxes ) {
+                    if ( box.connectionId == oldId ) {
+                        box.connectionId = newId;
+                    }
+                }
             }
         }
         
 
-        Map<Integer, Long> connectionSizes = new HashMap<>();
+        Map<Integer, Integer> connectionSizes = new HashMap<>();
         for (JunctionBox box : boxes) {
             if (box.connectionId == 0) {
                 continue;
             }
-            connectionSizes.putIfAbsent(box.connectionId, 0L);
+            System.out.println("Connected box: " + box);
+            connectionSizes.putIfAbsent(box.connectionId, 0);
             connectionSizes.put(box.connectionId, connectionSizes.get(box.connectionId) + 1);
         }
 
-        long result = connectionSizes.values().stream().reduce(1L, (a, b) -> a * b);
+        List<Integer> connectionSizesList = new ArrayList<>(connectionSizes.values());
+        connectionSizesList.sort((s1, s2) -> Integer.compare(s2, s1));
+        System.out.println("Connection sizes: " + connectionSizesList);
+
+        List<Integer> topConnections = connectionSizesList
+                .stream()
+                .limit(3)
+                .toList();
+        
+        System.out.println("Top connections: " + topConnections);
+
+        long result = topConnections.stream().mapToLong(Integer::longValue).reduce(1L, (a, b) -> a * b);
         System.out.println("Result: " + result);
     }
     
@@ -73,28 +92,14 @@ public class Day8a extends Base {
         solution.solve();
     }
 
-    private JunctionBox getClosestBox(List<JunctionBox> boxes, JunctionBox boxA) {
-        JunctionBox closest = null;
-        double minDistance = Double.MAX_VALUE;
-            
-        for ( JunctionBox boxB : boxes ) {
-            if ( boxA.x == boxB.x && boxA.y == boxB.y && boxA.z == boxB.z ) {
-                continue;
-            }
-            if ( !canConnect(boxA, boxB) ) {
-                continue;
-            }
-            double distance = calculateDistance(boxA, boxB);
-            if ( distance < minDistance ) {
-                minDistance = distance;
-                closest = boxB;
-            }
-        }
-        return closest;
-    }
-
     private boolean canConnect(JunctionBox a, JunctionBox b) {
-        return !(a.connectionId != 0 && b.connectionId != 0);
+        if ( a.connectionId == 0 || b.connectionId == 0 ) {
+            return true;
+        }
+        if ( a.connectionId == b.connectionId ) {
+            return false;
+        }
+        return true;
     }
 
     private double calculateDistance(JunctionBox a, JunctionBox b) {
@@ -124,6 +129,15 @@ public class Day8a extends Base {
             this.boxB = boxB;
             this.distance = calculateDistance(boxA, boxB);
         }
+
+        @Override
+        public String toString() {
+            return "PairWithDistance{" +
+                    "boxA=" + boxA +
+                    ", boxB=" + boxB +
+                    ", distance=" + distance +
+                    '}';
+        }
     }
 
     private class JunctionBox {
@@ -137,5 +151,15 @@ public class Day8a extends Base {
             this.y = y;
             this.z = z;
         }
+
+        @Override
+        public String toString() {
+            return "JunctionBox{" +
+                    "x=" + x +
+                    ", y=" + y +
+                    ", z=" + z +
+                    ", connectionId=" + connectionId +
+                    '}';
+        }   
     }
 }
