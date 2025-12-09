@@ -2,7 +2,6 @@ package gac2025.day09;
 
 import gac2025.Base;
 
-import java.lang.classfile.ClassFile.Option;
 import java.util.*;
 
 public class Day9b extends Base {
