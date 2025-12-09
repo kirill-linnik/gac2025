@@ -134,8 +134,7 @@ public class Day9b extends Base {
                         
             if (valid) {
                 System.out.println("Valid rectangle found with area: " + rect.area +
-                                   " between points: Point{x=" + p1.x + ", y=" + p1.y + 
-                                   "} and Point{x=" + p2.x + ", y=" + p2.y + "}");
+                                   " between points: " + p1 + " and " + p2);
                 break;
             }
         }
@@ -214,6 +213,11 @@ public class Day9b extends Base {
         public Point(int x, int y) {
             this.x = x;
             this.y = y;
+        }
+
+        @Override
+        public String toString() {
+            return "(" + x + "," + y + ")";
         }
     }
 }
