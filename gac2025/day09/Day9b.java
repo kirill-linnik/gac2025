@@ -2,6 +2,7 @@ package gac2025.day09;
 
 import gac2025.Base;
 
+import java.lang.classfile.ClassFile.Option;
 import java.util.*;
 
 public class Day9b extends Base {
@@ -14,8 +15,8 @@ public class Day9b extends Base {
         
         // Parse points
         List<Point> points = new ArrayList<>();
-        TreeSet<Integer> allX = new TreeSet<>();
-        TreeSet<Integer> allY = new TreeSet<>();
+        Set<Integer> allX = new HashSet<>();
+        Set<Integer> allY = new HashSet<>();
         
         for (String line : lines) {
             String[] parts = line.split(",");
@@ -31,73 +32,71 @@ public class Day9b extends Base {
         // Coordinate compression: map actual coordinates to compressed indices
         List<Integer> xCoords = new ArrayList<>(allX);
         List<Integer> yCoords = new ArrayList<>(allY);
-        Map<Integer, Integer> xToIndex = new HashMap<>();
-        Map<Integer, Integer> yToIndex = new HashMap<>();
-        
-        for (int i = 0; i < xCoords.size(); i++) {
-            xToIndex.put(xCoords.get(i), i);
-        }
+        Collections.sort(xCoords);
+        Collections.sort(yCoords);
+
+        // Create a grid for compressed coordinates
+        boolean[][] compGrid = new boolean[yCoords.size()][xCoords.size()];
+
+        // Mark points in the compressed grid
         for (int i = 0; i < yCoords.size(); i++) {
-            yToIndex.put(yCoords.get(i), i);
-        }
-        
-        // Compress points
-        for (Point p : points) {
-            p.x = xToIndex.get(p.x);
-            p.y = yToIndex.get(p.y);
-        }
-        
-        System.out.println("Coordinates compressed to grid: " + xCoords.size() + "x" + yCoords.size());
-
-        // Build spatial indexes with compressed coordinates
-        Map<Integer, TreeSet<Integer>> pointsByX = new HashMap<>();
-        Map<Integer, TreeSet<Integer>> pointsByY = new HashMap<>();
-        
-        for (Point p : points) {
-            pointsByX.computeIfAbsent(p.x, k -> new TreeSet<>()).add(p.y);
-            pointsByY.computeIfAbsent(p.y, k -> new TreeSet<>()).add(p.x);
-        }
-
-        // Build compact grid
-        int gridWidth = xCoords.size();
-        int gridHeight = yCoords.size();
-        boolean[][] grid = new boolean[gridHeight][gridWidth];
-
-        System.out.println("Building grid...");
-
-        // Draw segments between adjacent points
-        for (Point p : points) {
-            TreeSet<Integer> ysAtX = pointsByX.get(p.x);
-            Integer nextY = ysAtX.higher(p.y);
-            if (nextY != null) {
-                for (int y = p.y; y <= nextY; y++) {
-                    grid[y][p.x] = true;
+            int y = yCoords.get(i);
+            for (int j = 0; j < xCoords.size(); j++) {
+                int x = xCoords.get(j);
+                Optional<Point> pointAt = points.stream()
+                    .filter(p -> p.x == x && p.y == y)
+                    .findFirst();
+                if (pointAt.isPresent()) {
+                    compGrid[i][j] = true;
+                    pointAt.get().compX = j;
+                    pointAt.get().compY = i;
                 }
             }
+        }
+
+        // Fill perimeter - connect consecutive points in the list
+        for (int i = 0; i < points.size(); i++) {
+            Point current = points.get(i);
+            Point next = points.get((i + 1) % points.size()); // Wrap around to first point
             
-            TreeSet<Integer> xsAtY = pointsByY.get(p.y);
-            Integer nextX = xsAtY.higher(p.x);
-            if (nextX != null) {
-                for (int x = p.x; x <= nextX; x++) {
-                    grid[p.y][x] = true;
+            int x1 = current.compX;
+            int y1 = current.compY;
+            int x2 = next.compX;
+            int y2 = next.compY;
+            
+            // Draw line from current to next
+            if (x1 == x2) {
+                // Vertical line
+                int minY = Math.min(y1, y2);
+                int maxY = Math.max(y1, y2);
+                for (int y = minY; y <= maxY; y++) {
+                    compGrid[y][x1] = true;
+                }
+            } else if (y1 == y2) {
+                // Horizontal line
+                int minX = Math.min(x1, x2);
+                int maxX = Math.max(x1, x2);
+                for (int x = minX; x <= maxX; x++) {
+                    compGrid[y1][x] = true;
                 }
             }
         }
+        System.out.println("Perimeter filled.");
 
-        System.out.println("Perimeter drawn, filling interior...");
-
-        // Fill interior - a point is inside if blocked in all 4 directions
-        for (int y = 0; y < gridHeight; y++) {
-            for (int x = 0; x < gridWidth; x++) {
-                if (!grid[y][x] && isEnclosed(grid, x, y, gridWidth, gridHeight)) {
-                    grid[y][x] = true;
+        // Fill interior
+        for ( int i = 0; i < compGrid.length; i++ ) {
+            for ( int j = 0; j < compGrid[0].length; j++ ) {
+                if ( !compGrid[i][j] ) {
+                    if ( isEnclosed(compGrid, j, i, compGrid[0].length, compGrid.length) ) {
+                        compGrid[i][j] = true;
+                    }
                 }
             }
         }
+        
+        System.out.println("Grid filled, checking rectangles.");
 
-        System.out.println("Grid filled, checking rectangles...");
-
-        // Generate and check rectangles
+        // Generate rectangles
         List<Rectangle> rectangles = new ArrayList<>();
         for (int i = 0; i < points.size(); i++) {
             for (int j = i + 1; j < points.size(); j++) {
@@ -105,37 +104,18 @@ public class Day9b extends Base {
             }
         }
         
-        rectangles.sort((r1, r2) -> {
-            // Sort by real area in original coordinates
-            Point p1 = r1.p1, p2 = r1.p2;
-            int origX1_1 = xCoords.get(p1.x), origY1_1 = yCoords.get(p1.y);
-            int origX2_1 = xCoords.get(p2.x), origY2_1 = yCoords.get(p2.y);
-            long dx1 = Math.abs(origX1_1 - origX2_1) + 1;
-            long dy1 = Math.abs(origY1_1 - origY2_1) + 1;
-            long area1 = dx1 * dy1;
-            
-            p1 = r2.p1; p2 = r2.p2;
-            int origX1_2 = xCoords.get(p1.x), origY1_2 = yCoords.get(p1.y);
-            int origX2_2 = xCoords.get(p2.x), origY2_2 = yCoords.get(p2.y);
-            long dx2 = Math.abs(origX1_2 - origX2_2) + 1;
-            long dy2 = Math.abs(origY1_2 - origY2_2) + 1;
-            long area2 = dx2 * dy2;
-            
-            return Long.compare(area2, area1);
-        });
+        // Sort rectangles by area descending
+        rectangles.sort((r1, r2) -> Long.compare(r2.area, r1.area));
 
         for (Rectangle rect : rectangles) {
-            // Get original coordinates
-            int origX1 = xCoords.get(rect.p1.x);
-            int origY1 = yCoords.get(rect.p1.y);
-            int origX2 = xCoords.get(rect.p2.x);
-            int origY2 = yCoords.get(rect.p2.y);
-            
-            int origMinX = Math.min(origX1, origX2);
-            int origMaxX = Math.max(origX1, origX2);
-            int origMinY = Math.min(origY1, origY2);
-            int origMaxY = Math.max(origY1, origY2);
-            
+            Point p1 = rect.p1;
+            Point p2 = rect.p2;
+
+            int origMinX = Math.min(p1.x, p2.x);
+            int origMaxX = Math.max(p1.x, p2.x);
+            int origMinY = Math.min(p1.y, p2.y);
+            int origMaxY = Math.max(p1.y, p2.y);
+
             // Find the range of compressed coordinates that cover this rectangle
             int compMinX = -1, compMaxX = -1, compMinY = -1, compMaxY = -1;
             
@@ -156,53 +136,84 @@ public class Day9b extends Base {
                     compMaxY = i;
                 }
             }
-            
-            // Check if all compressed cells in this range are filled
-            boolean allFilled = true;
+
+            boolean valid = true;
             if (compMinX >= 0 && compMaxX >= 0 && compMinY >= 0 && compMaxY >= 0) {
-                for (int compY = compMinY; compY <= compMaxY && allFilled; compY++) {
-                    for (int compX = compMinX; compX <= compMaxX && allFilled; compX++) {
-                        if (!grid[compY][compX]) {
-                            allFilled = false;
+                for ( int y = compMinY; y <= compMaxY; y++ ) {
+                    for ( int x = compMinX; x <= compMaxX; x++ ) {
+                        if ( !compGrid[y][x] ) {
+                            valid = false;
+                            break;
                         }
+                    }
+                    if ( !valid ) {
+                        break;
                     }
                 }
             } else {
-                allFilled = false;
+                valid = false;
             }
-            
-            if (allFilled) {
-                long dx = origMaxX - origMinX + 1;
-                long dy = origMaxY - origMinY + 1;
+                        
+            if ( valid ) {
+                long dx = Math.abs((long)(p1.x - p2.x)) + 1;
+                long dy = Math.abs((long)(p1.y - p2.y)) + 1;
                 long realArea = dx * dy;
                 
-                System.out.println("Found largest square with area: " + realArea);
-                System.out.println("Between points: Point{x=" + origX1 + ", y=" + origY1 + 
-                                 "} and Point{x=" + origX2 + ", y=" + origY2 + "}");
-                return;
+                System.out.println("Valid rectangle found with area: " + realArea +
+                                   " between points: Point{x=" + p1.x + ", y=" + p1.y + 
+                                   "} and Point{x=" + p2.x + ", y=" + p2.y + "}");
+                break;
             }
         }
-        
-        System.out.println("No valid rectangle found");
     }
     
     private boolean isEnclosed(boolean[][] grid, int x, int y, int width, int height) {
-        boolean left = false, right = false, up = false, down = false;
+        boolean left = false;
         
         for (int i = x - 1; i >= 0; i--) {
-            if (grid[y][i]) { left = true; break; }
+            if (grid[y][i]) { 
+                left = true; 
+                break; 
+            }
         }
+        if ( !left ) {
+            return false;
+        }
+
+        boolean right = false;
         for (int i = x + 1; i < width; i++) {
-            if (grid[y][i]) { right = true; break; }
+            if (grid[y][i]) { 
+                right = true; 
+                break; 
+            }
         }
+        if ( !right ) {
+            return false;
+        }
+
+        boolean up = false;
         for (int i = y - 1; i >= 0; i--) {
-            if (grid[i][x]) { up = true; break; }
+            if (grid[i][x]) { 
+                up = true; 
+                break; 
+            }
         }
+        if ( !up ) {
+            return false;
+        }
+
+        boolean down = false;
         for (int i = y + 1; i < height; i++) {
-            if (grid[i][x]) { down = true; break; }
+            if (grid[i][x]) { 
+                down = true; 
+                break; 
+            }
+        }
+        if ( !down ) {
+            return false;
         }
         
-        return left && right && up && down;
+        return true;
     }
     
     public static void main(String[] args) {
@@ -212,15 +223,19 @@ public class Day9b extends Base {
 
     private class Rectangle {
         Point p1, p2;
+        long area;
 
         public Rectangle(Point p1, Point p2) {
             this.p1 = p1;
             this.p2 = p2;
+            
+            this.area = (Math.abs((long)(p1.x - p2.x)) + 1) * (Math.abs((long)(p1.y - p2.y)) + 1);
         }
     }
 
     private class Point {
         int x, y;
+        int compX, compY;
 
         public Point(int x, int y) {
             this.x = x;
