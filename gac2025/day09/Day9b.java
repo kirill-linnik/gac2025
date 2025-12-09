@@ -1,7 +1,6 @@
 package gac2025.day09;
 
 import gac2025.Base;
-
 import java.util.*;
 
 public class Day9b extends Base {
@@ -87,7 +86,7 @@ public class Day9b extends Base {
         for ( int i = 0; i < compGrid.length; i++ ) {
             for ( int j = 0; j < compGrid[0].length; j++ ) {
                 if ( !compGrid[i][j] ) {
-                    if ( isEnclosed(compGrid, j, i, compGrid[0].length, compGrid.length) ) {
+                    if ( isEnclosed(compGrid, j, i) ) {
                         compGrid[i][j] = true;
                     }
                 }
@@ -139,8 +138,10 @@ public class Day9b extends Base {
         }
     }
     
-    private boolean isEnclosed(boolean[][] grid, int x, int y, int width, int height) {
+    private boolean isEnclosed(boolean[][] grid, int x, int y) {
         boolean left = false;
+        int width = grid[0].length;
+        int height = grid.length;
         
         for (int i = x - 1; i >= 0; i--) {
             if (grid[y][i]) { 
