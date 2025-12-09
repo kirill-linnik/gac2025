@@ -57,7 +57,7 @@ public class Day9b extends Base {
         // Fill perimeter - connect consecutive points in the list
         for (int i = 0; i < points.size(); i++) {
             Point current = points.get(i);
-            Point next = points.get((i + 1) % points.size()); // Wrap around to first point
+            Point next = points.get(i + 1 == points.size() ? 0 : i + 1); // Return to first point
             
             int x1 = current.compX;
             int y1 = current.compY;
@@ -69,14 +69,15 @@ public class Day9b extends Base {
                 // Vertical line
                 int minY = Math.min(y1, y2);
                 int maxY = Math.max(y1, y2);
-                for (int y = minY; y <= maxY; y++) {
+                for (int y = minY + 1; y < maxY; y++) {
                     compGrid[y][x1] = true;
                 }
-            } else if (y1 == y2) {
+            } 
+            else if (y1 == y2) {
                 // Horizontal line
                 int minX = Math.min(x1, x2);
                 int maxX = Math.max(x1, x2);
-                for (int x = minX; x <= maxX; x++) {
+                for (int x = minX + 1; x < maxX; x++) {
                     compGrid[y1][x] = true;
                 }
             }
@@ -111,55 +112,28 @@ public class Day9b extends Base {
             Point p1 = rect.p1;
             Point p2 = rect.p2;
 
-            int origMinX = Math.min(p1.x, p2.x);
-            int origMaxX = Math.max(p1.x, p2.x);
-            int origMinY = Math.min(p1.y, p2.y);
-            int origMaxY = Math.max(p1.y, p2.y);
+            // Use compressed coordinates directly from the points
+            int compMinX = Math.min(p1.compX, p2.compX);
+            int compMaxX = Math.max(p1.compX, p2.compX);
+            int compMinY = Math.min(p1.compY, p2.compY);
+            int compMaxY = Math.max(p1.compY, p2.compY);
 
-            // Find the range of compressed coordinates that cover this rectangle
-            int compMinX = -1, compMaxX = -1, compMinY = -1, compMaxY = -1;
-            
-            for (int i = 0; i < xCoords.size(); i++) {
-                if (xCoords.get(i) <= origMinX && (compMinX == -1 || xCoords.get(i) >= xCoords.get(compMinX))) {
-                    compMinX = i;
-                }
-                if (xCoords.get(i) >= origMaxX && (compMaxX == -1 || xCoords.get(i) <= xCoords.get(compMaxX))) {
-                    compMaxX = i;
-                }
-            }
-            
-            for (int i = 0; i < yCoords.size(); i++) {
-                if (yCoords.get(i) <= origMinY && (compMinY == -1 || yCoords.get(i) >= yCoords.get(compMinY))) {
-                    compMinY = i;
-                }
-                if (yCoords.get(i) >= origMaxY && (compMaxY == -1 || yCoords.get(i) <= yCoords.get(compMaxY))) {
-                    compMaxY = i;
-                }
-            }
-
+            // Check if all cells in the compressed grid rectangle are filled
             boolean valid = true;
-            if (compMinX >= 0 && compMaxX >= 0 && compMinY >= 0 && compMaxY >= 0) {
-                for ( int y = compMinY; y <= compMaxY; y++ ) {
-                    for ( int x = compMinX; x <= compMaxX; x++ ) {
-                        if ( !compGrid[y][x] ) {
-                            valid = false;
-                            break;
-                        }
-                    }
-                    if ( !valid ) {
+            for (int y = compMinY; y <= compMaxY; y++) {
+                for (int x = compMinX; x <= compMaxX; x++) {
+                    if (!compGrid[y][x]) {
+                        valid = false;
                         break;
                     }
                 }
-            } else {
-                valid = false;
+                if (!valid) {
+                    break;
+                }
             }
                         
-            if ( valid ) {
-                long dx = Math.abs((long)(p1.x - p2.x)) + 1;
-                long dy = Math.abs((long)(p1.y - p2.y)) + 1;
-                long realArea = dx * dy;
-                
-                System.out.println("Valid rectangle found with area: " + realArea +
+            if (valid) {
+                System.out.println("Valid rectangle found with area: " + rect.area +
                                    " between points: Point{x=" + p1.x + ", y=" + p1.y + 
                                    "} and Point{x=" + p2.x + ", y=" + p2.y + "}");
                 break;
