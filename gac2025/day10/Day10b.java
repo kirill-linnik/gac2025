@@ -68,13 +68,15 @@ public class Day10b extends Base {
         List<List<boolean[]>> allSwitchCombinations = getAllPermutations(machine.switches);
         for ( List<boolean[]> switchCombination : allSwitchCombinations ){
             // Simulate applying this combination of switches
+            long combinationResult = 0;
             int[] currentJoltage = new int[machine.indicators.length];
             for ( boolean[] switchRow : switchCombination ){
                 int maxTimesCanBeApplied = getMaxTimesSwitchCanBeApplied(currentJoltage, machine.joltage, switchRow);
                 applySwitch(currentJoltage, switchRow, maxTimesCanBeApplied);
+                combinationResult += maxTimesCanBeApplied;
             }
             if ( statesAreEqual(currentJoltage, machine.joltage) ){
-                result = Math.min(result, switchCombination.size());
+                result = Math.min(result, combinationResult);
             }
         }
         
