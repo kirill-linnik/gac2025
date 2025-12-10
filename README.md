@@ -1,84 +1,151 @@
-# Advent of Code 2025 - Java Solutions
+# Advent of Code 2025 - Java Solutions (Gradle)
 
-This project contains solutions for the Advent of Code 2025 challenges.
+This project contains solutions for the Advent of Code 2025 challenges, built with Gradle.
+
+## Prerequisites
+
+- **Java JDK 25** (with preview features enabled)
+- **No need to install Gradle** - the project uses Gradle Wrapper
+
+## Quick Start
+
+### First Time Setup
+
+1. The Gradle wrapper is already included - no installation needed!
+2. Dependencies (including Z3) are automatically managed by Gradle
+
+### Running Solutions
+
+**Run any day using the custom task:**
+```bash
+# Windows
+.\gradlew runDay -Pday=01 -Ppart=a
+.\gradlew runDay -Pday=10 -Ppart=b
+
+# Linux/Mac
+./gradlew runDay -Pday=01 -Ppart=a
+./gradlew runDay -Pday=10 -Ppart=b
+```
+
+**Run specific day classes directly:**
+```bash
+# Windows
+.\gradlew runDay01a
+.\gradlew runDay10b
+.\gradlew runDay24b
+
+# Linux/Mac
+./gradlew runDay01a
+./gradlew runDay10b
+./gradlew runDay24b
+```
+
+**List all available tasks:**
+```bash
+.\gradlew listDays    # Windows
+./gradlew listDays    # Linux/Mac
+```
+
+### Building
+
+```bash
+# Compile all classes
+.\gradlew build       # Windows
+./gradlew build       # Linux/Mac
+
+# Clean and rebuild
+.\gradlew clean build
+```
 
 ## Project Structure
 
 ```
 gac2025/
-├── Base.java              # Base class with file reading utilities
-├── lib/                   # External dependencies (e.g., Z3 solver)
-├── day01/                 # Day 1 solutions
-│   ├── Day1a.java
-│   ├── Day1b.java
-│   └── input.txt
-├── day02/                 # Day 2 solutions
-│   ├── Day2a.java
-│   ├── Day2b.java
-│   └── input.txt
-...
-└── day24/                 # Day 24 solutions
-    ├── Day24a.java
-    ├── Day24b.java
-    └── input.txt
+├── build.gradle           # Gradle build configuration
+├── settings.gradle        # Project settings
+├── gradle.properties      # Build properties
+├── gradlew / gradlew.bat  # Gradle wrapper scripts
+├── gradle/wrapper/        # Gradle wrapper files
+├── src/main/java/gac2025/ # Source directory (Gradle standard layout)
+│   ├── Base.java          # Base class with utilities
+│   ├── day01/             # Day 1 solutions
+│   │   ├── Day1a.java
+│   │   ├── Day1b.java
+│   │   ├── input-a.txt    # Input files next to Java sources
+│   │   └── input-b.txt
+│   ├── day02/             # Day 2 solutions
+│   │   ├── Day2a.java
+│   │   ├── Day2b.java
+│   │   ├── input-a.txt
+│   │   └── input-b.txt
+│   ...
+│   └── day24/             # Day 24 solutions
+└── build/                 # Build output (generated)
+    ├── classes/
+    ├── libs/
+    └── resources/         # .txt files copied here during build
 ```
 
-## How to Use
+## Dependencies
 
-### Standard Solutions
+### Z3 Solver
 
-1. **Add your input**: Copy the puzzle input from the Advent of Code website into the corresponding `input.txt` file for each day
-2. **Implement the solution**: Edit the `DayXa.java` or `DayXb.java` file to implement your solution
-3. **Compile**: `javac -d bin gac2025/Base.java gac2025/dayXX/DayXXa.java`
-4. **Run**: `java -cp bin gac2025.dayXX.DayXXa`
+This project uses the **Z3-TurnKey** library (v4.13.0) for constraint solving (used in Day 10 Part B).
 
-### Day 10 Part B - Z3 Solver Solution
+**Why Z3?** Some puzzles involve constraint satisfaction and optimization:
+- System of linear equations with constraints
+- Find non-negative integer solutions
+- Minimize/maximize objective functions
 
-Day 10 Part B uses the Microsoft Z3 SMT (Satisfiability Modulo Theories) solver for constraint optimization.
+Z3 is automatically downloaded by Gradle from Maven Central - no manual setup required!
 
-**Why Z3?** Part B is essentially a system of linear equations with optimization:
-- Each button press increments specific counters
-- We need to find non-negative integer values for button presses
-- We want to minimize the total number of button presses
+## IDE Integration
 
-This is perfect for Z3's constraint solving and optimization capabilities.
+### IntelliJ IDEA
+```bash
+.\gradlew idea
+# Then open the project in IntelliJ
+```
 
-#### Setup
+### Eclipse
+```bash
+.\gradlew eclipse
+# Then import as existing project
+```
 
-**Automated (Recommended):**
-1. Run `.\download-deps.ps1` (downloads Z3 library to `lib/`)
-2. Run `.\run-day10b.ps1` (compiles and runs)
+### VS Code
+Simply open the folder - VS Code will detect the Gradle project automatically.
 
-**Manual:**
-1. Download [z3-turnkey-4.13.0.jar](https://repo1.maven.org/maven2/tools/aqua/z3-turnkey/4.13.0/z3-turnkey-4.13.0.jar) to `lib/`
-2. Compile: `javac -cp "lib\*" --enable-preview --source 25 gac2025\Base.java gac2025\day10\Day10b.java`
-3. Run: `java -cp "lib\*;." --enable-preview gac2025.day10.Day10b`
+## Advanced Usage
 
-#### How It Works
+### Run with custom arguments
+```bash
+.\gradlew run --args="custom arguments"
+```
 
-The Z3 solver models the problem as:
-1. **Variables**: Integer variable for each button (press count)
-2. **Constraints**: For each counter, sum of affecting button presses = target value; all counts ≥ 0
-3. **Optimization**: Minimize total button presses
-4. **Solution**: Z3 finds the optimal configuration in milliseconds
+### Run tests (if added)
+```bash
+.\gradlew test
+```
 
-Example: For buttons `(3)`, `(1,3)`, `(2)` and targets `{3,5,4,7}`, Z3 creates equations like:
-- Counter 0: button₄ + button₅ = 3
-- Counter 1: button₁ + button₅ = 5
-- etc.
+### Generate dependency report
+```bash
+.\gradlew dependencies
+```
 
-## Base Class Features
+### Build without tests
+```bash
+.\gradlew build -x test
+```
 
-The `Base` class provides three utility methods for reading input files:
+## Making Classes Easy to Run
 
-- `readFile(String filename)`: Reads the entire file as a single string
-- `readLines(String filename)`: Reads the file as a list of lines
-- `readNonEmptyLines(String filename)`: Reads the file as a list of non-empty lines
+Every solution class has:
+1. **A `main` method** - Can be run directly from IDE
+2. **A Gradle task** - Generated automatically for each day/part
+3. **Package structure** - Organized by day for clarity
 
-All solution classes inherit from `Base` and can use these methods directly.
-
-## Example
-
+Example structure:
 ```java
 package gac2025.day01;
 
@@ -89,7 +156,7 @@ public class Day1a extends Base {
     
     @Override
     public void solve() {
-        List<String> lines = readLines("gac2025/day01/input.txt");
+        List<String> lines = readLines("day01/input-a.txt");
         
         // Your solution here
         int result = 0;

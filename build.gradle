@@ -1,0 +1,124 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.gac2025'
+version = '1.0-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Z3 Solver - TurnKey version with native libraries
+    implementation 'tools.aqua:z3-turnkey:4.13.0'
+    
+    // JUnit for testing (optional)
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+        resources {
+            srcDir 'src/main/resources'
+            // Also copy .txt files from java source to resources for JAR packaging
+            srcDir 'src/main/java'
+            include '**/*.txt'
+        }
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ['--enable-preview']
+    options.release = 25
+}
+
+tasks.withType(JavaExec) {
+    jvmArgs += ['--enable-preview']
+}
+
+tasks.withType(Test) {
+    jvmArgs += ['--enable-preview']
+    useJUnitPlatform()
+}
+
+// Default application to run (can be overridden)
+application {
+    mainClass = 'gac2025.day01.Day1a'
+}
+
+// Helper function to create run tasks for each day
+def createDayTask(String dayFolder, String part, String classPrefix) {
+    def className = "${classPrefix}${part}"
+    def taskName = "run${dayFolder.capitalize()}${part}"
+    
+    tasks.register(taskName, JavaExec) {
+        group = 'advent-of-code'
+        description = "Run ${dayFolder} part ${part}"
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = "gac2025.${dayFolder}.${className}"
+        jvmArgs = ['--enable-preview']
+        standardInput = System.in
+    }
+}
+
+// Generate tasks for all days (day01-day24, parts a and b)
+(1..24).each { dayNum ->
+    def dayStr = String.format('day%02d', dayNum)  // folder name: day01, day02, etc
+    def className = "Day${dayNum}"  // class name: Day1, Day2, etc (no zero-padding)
+    createDayTask(dayStr, 'a', className)
+    createDayTask(dayStr, 'b', className)
+}
+
+// Convenience task to list all available day tasks
+tasks.register('listDays') {
+    group = 'advent-of-code'
+    description = 'List all available day tasks'
+    doLast {
+        println '\nAvailable Advent of Code tasks:'
+        println '================================'
+        tasks.matching { it.group == 'advent-of-code' }.each { task ->
+            if (task.name != 'listDays') {
+                println "  ./gradlew ${task.name}"
+            }
+        }
+        println '\nOr run with custom main class:'
+        println '  ./gradlew run --args="gac2025.day01.Day1a"'
+        println '================================\n'
+    }
+}
+
+// Clean task to also clean bin directory
+clean {
+    delete 'bin'
+}
+
+// Custom task to run any day/part easily
+tasks.register('runDay', JavaExec) {
+    group = 'advent-of-code'
+    description = 'Run a specific day: ./gradlew runDay -Pday=01 -Ppart=a'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs = ['--enable-preview']
+    standardInput = System.in
+    
+    doFirst {
+        def day = project.findProperty('day') ?: '01'
+        def part = project.findProperty('part') ?: 'a'
+        def dayNum = day as int
+        def dayFolder = String.format('day%02d', dayNum)  // day01, day02, etc
+        def className = "Day${dayNum}${part}"  // Day1a, Day2a, etc (no zero-padding)
+        mainClass = "gac2025.${dayFolder}.${className}"
+        println "Running: ${mainClass.get()}"
+    }
+}
