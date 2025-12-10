@@ -64,60 +64,49 @@ public class Day10b extends Base {
     }
 
     private long getMinimumButtonPressesToAchieveJoltage(Machine machine) {
-        long result = 0;
-        int[] currentJoltage = new int[machine.indicators.length];
-        while ( !statesAreEqual(currentJoltage, machine.joltage) ){
-            boolean[] bestNextSwitch = getBestNextSwitch(machine, currentJoltage);
-            applySwitch(currentJoltage, bestNextSwitch);
-            result++;
+        long result = Long.MAX_VALUE;
+        List<List<boolean[]>> allSwitchCombinations = getAllPermutations(machine.switches);
+        for ( List<boolean[]> switchCombination : allSwitchCombinations ){
+            // Simulate applying this combination of switches
+            int[] currentJoltage = new int[machine.indicators.length];
+            for ( boolean[] switchRow : switchCombination ){
+                int maxTimesCanBeApplied = getMaxTimesSwitchCanBeApplied(currentJoltage, machine.joltage, switchRow);
+                applySwitch(currentJoltage, switchRow, maxTimesCanBeApplied);
+            }
+            if ( statesAreEqual(currentJoltage, machine.joltage) ){
+                result = Math.min(result, switchCombination.size());
+            }
         }
-
+        
         return result; 
     }
 
-    private void applySwitch(int[] currentJoltage, boolean[] switchRow) {
-        for ( int i = 0; i < switchRow.length; i++ ){
-            if ( switchRow[i] ){
-                currentJoltage[i] += 1; // Example effect of switch
-            }
-        }
-    }
-
-    private boolean[] getBestNextSwitch(Machine machine, int[] currentJoltage) {
-        // Find the switch that gets us closest to the target joltage
-        boolean[] bestSwitch = null;
-        int bestImprovement = Integer.MAX_VALUE;
-
-        for ( boolean[] switchRow : machine.switches ){
-            int[] newJoltage = currentJoltage.clone();
-            for ( int i = 0; i < switchRow.length; i++ ){
-                if ( switchRow[i] ){
-                    newJoltage[i] += 1; // Example effect of switch
+    private int getMaxTimesSwitchCanBeApplied(int[] currentJoltage, int[] targetJoltage, boolean[] switchRow) {
+        int maxTimes = 0;
+        int[] tempJoltage = currentJoltage.clone();
+        boolean stopped = false;
+        while ( !stopped ){
+            applySwitch(tempJoltage, switchRow, 1);
+            for ( int i = 0; i < tempJoltage.length; i++ ){
+                if ( tempJoltage[i] > targetJoltage[i] ){
+                    stopped = true;
+                    break;
                 }
             }
-            int improvement = calculateImprovement(newJoltage, machine.joltage);
-            if ( improvement < bestImprovement ){
-                bestImprovement = improvement;
-                bestSwitch = switchRow;
+            if ( !stopped ){
+                maxTimes++;
             }
-        }
-        return bestSwitch;
+        } 
+        return maxTimes;
     }
 
-    private int calculateImprovement(int[] newState, int[] target) {
-        int improvement = 0;
-        for ( int i = 0; i < newState.length; i++ ){
-            int voltageDiff = target[i] - newState[i];
-            if ( voltageDiff >= 0 ){
-                improvement += voltageDiff;
-            }
-            else {
-                return Integer.MAX_VALUE; // Penalize overshooting
+    private void applySwitch(int[] currentJoltage, boolean[] switchRow, int times) {
+        for ( int i = 0; i < switchRow.length; i++ ){
+            if ( switchRow[i] ){
+                currentJoltage[i] += times; // Example effect of switch
             }
         }
-        return improvement;
     }
-   
 
     private boolean statesAreEqual(int[] state1, int[] state2) {
         if ( state1.length != state2.length ) {

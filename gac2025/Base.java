@@ -3,6 +3,7 @@ package gac2025;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,6 +60,32 @@ public abstract class Base {
             return List.of();
         }
     }
+
+    protected <T> List<List<T>> getAllPermutations(List<T> items) {
+        List<List<T>> result = new ArrayList<>();
+        generatePermutations(new ArrayList<>(items), 0, result);
+        return result;
+    }
+    
+    private <T> void generatePermutations(List<T> items, int index, List<List<T>> result) {
+        if (index == items.size() - 1) {
+            result.add(new ArrayList<>(items));
+            return;
+        }
+        
+        for (int i = index; i < items.size(); i++) {
+            swap(items, index, i);
+            generatePermutations(items, index + 1, result);
+            swap(items, index, i);
+        }
+    }
+    
+    private <T> void swap(List<T> items, int i, int j) {
+        T temp = items.get(i);
+        items.set(i, items.get(j));
+        items.set(j, temp);
+    }
+        
     
     /**
      * Main solve method to be implemented by each solution
