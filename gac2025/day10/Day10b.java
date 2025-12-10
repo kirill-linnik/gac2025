@@ -69,69 +69,77 @@ public class Day10b extends Base {
 
     private long getMinimumButtonPressesToAchieveJoltage(Machine machine) {
         // Use Z3 solver to find minimum button presses, and it is the first time I had to use external library at Google Advent Calendar :(
-        Context ctx = new Context();
-        Optimize opt = ctx.mkOptimize();
-        IntExpr presses = ctx.mkIntConst("presses");
-        
-        // Create a variable for each button representing how many times it's pressed
-        IntExpr[] buttonVars = new IntExpr[machine.switches.size()];
-        for (int i = 0; i < machine.switches.size(); i++) {
-            buttonVars[i] = ctx.mkIntConst("button" + i);
-        }
-        
-        // Map each counter (joltage index) to the buttons that affect it
-        Map<Integer, List<IntExpr>> countersToButtons = new HashMap<>();
-        for (int i = 0; i < machine.switches.size(); i++) {
-            IntExpr buttonVar = buttonVars[i];
-            boolean[] switchRow = machine.switches.get(i);
-            for (int j = 0; j < switchRow.length; j++) {
-                if (switchRow[j]) {
-                    countersToButtons.computeIfAbsent(j, k -> new ArrayList<>()).add(buttonVar);
+        try (Context ctx = new Context()) {
+            Optimize opt = ctx.mkOptimize();
+            IntExpr presses = ctx.mkIntConst("presses");
+            
+            // Create a variable for each button representing how many times it's pressed
+            IntExpr[] buttonVars = new IntExpr[machine.switches.size()];
+            for (int i = 0; i < machine.switches.size(); i++) {
+                buttonVars[i] = ctx.mkIntConst("button" + i);
+            }
+            
+            // Map each counter (joltage index) to the buttons that affect it
+            Map<Integer, List<IntExpr>> countersToButtons = new HashMap<>();
+            for (int i = 0; i < machine.switches.size(); i++) {
+                IntExpr buttonVar = buttonVars[i];
+                boolean[] switchRow = machine.switches.get(i);
+                for (int j = 0; j < switchRow.length; j++) {
+                    if (switchRow[j]) {
+                        countersToButtons.computeIfAbsent(j, k -> new ArrayList<>()).add(buttonVar);
+                    }
                 }
             }
-        }
-        
-        // Add constraint: for each counter, sum of button presses must equal target joltage
-        for (Map.Entry<Integer, List<IntExpr>> entry : countersToButtons.entrySet()) {
-            int counterIndex = entry.getKey();
-            List<IntExpr> counterButtons = entry.getValue();
             
-            IntExpr targetValue = ctx.mkInt(machine.joltage[counterIndex]);
-            IntExpr[] buttonPressesArray = counterButtons.toArray(new IntExpr[0]);
-            IntExpr sumOfButtonPresses = (IntExpr) ctx.mkAdd(buttonPressesArray);
+            // Collect all constraints
+            List<BoolExpr> constraints = new ArrayList<>();
             
-            BoolExpr equation = ctx.mkEq(targetValue, sumOfButtonPresses);
-            opt.Add(equation);
-        }
-        
-        // Add constraint: all button presses must be non-negative
-        IntExpr zero = ctx.mkInt(0);
-        for (IntExpr buttonVar : buttonVars) {
-            BoolExpr nonNegative = ctx.mkGe(buttonVar, zero);
-            opt.Add(nonNegative);
-        }
-        
-        // Define total presses as sum of all button variables
-        IntExpr sumOfAllButtonVars = (IntExpr) ctx.mkAdd(buttonVars);
-        BoolExpr totalPressesEq = ctx.mkEq(presses, sumOfAllButtonVars);
-        opt.Add(totalPressesEq);
-        
-        // Minimize total presses
-        opt.MkMinimize(presses);
-        
-        // Check and get result
-        Status status = opt.Check();
-        
-        if (status == Status.SATISFIABLE) {
-            Model model = opt.getModel();
-            IntNum outputValue = (IntNum) model.evaluate(presses, false);
-            return outputValue.getInt();
-        } else if (status == Status.UNSATISFIABLE) {
-            System.out.println("Problem is UNSATISFIABLE (no solution exists).");
-            return -1;
-        } else {
-            System.out.println("Optimization could not be determined (" + status + ").");
-            return -1;
+            // Add constraint: for each counter, sum of button presses must equal target joltage
+            for (Map.Entry<Integer, List<IntExpr>> entry : countersToButtons.entrySet()) {
+                int counterIndex = entry.getKey();
+                List<IntExpr> counterButtons = entry.getValue();
+                
+                IntExpr targetValue = ctx.mkInt(machine.joltage[counterIndex]);
+                IntExpr[] buttonPressesArray = counterButtons.toArray(new IntExpr[0]);
+                IntExpr sumOfButtonPresses = (IntExpr) ctx.mkAdd(buttonPressesArray);
+                
+                BoolExpr equation = ctx.mkEq(targetValue, sumOfButtonPresses);
+                constraints.add(equation);
+            }
+            
+            // Add constraint: all button presses must be non-negative
+            IntExpr zero = ctx.mkInt(0);
+            for (IntExpr buttonVar : buttonVars) {
+                BoolExpr nonNegative = ctx.mkGe(buttonVar, zero);
+                constraints.add(nonNegative);
+            }
+            
+            // Define total presses as sum of all button variables
+            IntExpr sumOfAllButtonVars = (IntExpr) ctx.mkAdd(buttonVars);
+            BoolExpr totalPressesEq = ctx.mkEq(presses, sumOfAllButtonVars);
+            constraints.add(totalPressesEq);
+            
+            // Add all constraints at once
+            opt.Add(constraints.toArray(new BoolExpr[0]));
+            
+            // Minimize total presses
+            opt.MkMinimize(presses);
+            
+            // Check and get result (empty array means no additional assumptions)
+            BoolExpr[] emptyAssumptions = new BoolExpr[0];
+            Status status = opt.Check(emptyAssumptions);
+            
+            if (status == Status.SATISFIABLE) {
+                Model model = opt.getModel();
+                IntNum outputValue = (IntNum) model.evaluate(presses, false);
+                return outputValue.getInt();
+            } else if (status == Status.UNSATISFIABLE) {
+                System.out.println("Problem is UNSATISFIABLE (no solution exists).");
+                return -1;
+            } else {
+                System.out.println("Optimization could not be determined (" + status + ").");
+                return -1;
+            }
         }
     }
 
