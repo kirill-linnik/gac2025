@@ -3,6 +3,10 @@ package gac2025.day10;
 import gac2025.Base;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
+import com.microsoft.z3.*;
 
 public class Day10b extends Base {
     
@@ -64,62 +68,71 @@ public class Day10b extends Base {
     }
 
     private long getMinimumButtonPressesToAchieveJoltage(Machine machine) {
-        long result = Long.MAX_VALUE;
-        List<List<boolean[]>> allSwitchCombinations = getAllPermutations(machine.switches);
-        for ( List<boolean[]> switchCombination : allSwitchCombinations ){
-            // Simulate applying this combination of switches
-            long combinationResult = 0;
-            int[] currentJoltage = new int[machine.indicators.length];
-            for ( boolean[] switchRow : switchCombination ){
-                int maxTimesCanBeApplied = getMaxTimesSwitchCanBeApplied(currentJoltage, machine.joltage, switchRow);
-                applySwitch(currentJoltage, switchRow, maxTimesCanBeApplied);
-                combinationResult += maxTimesCanBeApplied;
-            }
-            if ( statesAreEqual(currentJoltage, machine.joltage) ){
-                result = Math.min(result, combinationResult);
+        // Use Z3 solver to find minimum button presses, and it is the first time I had to use external library at Google Advent Calendar :(
+        Context ctx = new Context();
+        Optimize opt = ctx.mkOptimize();
+        IntExpr presses = ctx.mkIntConst("presses");
+        
+        // Create a variable for each button representing how many times it's pressed
+        IntExpr[] buttonVars = new IntExpr[machine.switches.size()];
+        for (int i = 0; i < machine.switches.size(); i++) {
+            buttonVars[i] = ctx.mkIntConst("button" + i);
+        }
+        
+        // Map each counter (joltage index) to the buttons that affect it
+        Map<Integer, List<IntExpr>> countersToButtons = new HashMap<>();
+        for (int i = 0; i < machine.switches.size(); i++) {
+            IntExpr buttonVar = buttonVars[i];
+            boolean[] switchRow = machine.switches.get(i);
+            for (int j = 0; j < switchRow.length; j++) {
+                if (switchRow[j]) {
+                    countersToButtons.computeIfAbsent(j, k -> new ArrayList<>()).add(buttonVar);
+                }
             }
         }
         
-        return result; 
-    }
-
-    private int getMaxTimesSwitchCanBeApplied(int[] currentJoltage, int[] targetJoltage, boolean[] switchRow) {
-        int maxTimes = 0;
-        int[] tempJoltage = currentJoltage.clone();
-        boolean stopped = false;
-        while ( !stopped ){
-            applySwitch(tempJoltage, switchRow, 1);
-            for ( int i = 0; i < tempJoltage.length; i++ ){
-                if ( tempJoltage[i] > targetJoltage[i] ){
-                    stopped = true;
-                    break;
-                }
-            }
-            if ( !stopped ){
-                maxTimes++;
-            }
-        } 
-        return maxTimes;
-    }
-
-    private void applySwitch(int[] currentJoltage, boolean[] switchRow, int times) {
-        for ( int i = 0; i < switchRow.length; i++ ){
-            if ( switchRow[i] ){
-                currentJoltage[i] += times; // Example effect of switch
-            }
+        // Add constraint: for each counter, sum of button presses must equal target joltage
+        for (Map.Entry<Integer, List<IntExpr>> entry : countersToButtons.entrySet()) {
+            int counterIndex = entry.getKey();
+            List<IntExpr> counterButtons = entry.getValue();
+            
+            IntExpr targetValue = ctx.mkInt(machine.joltage[counterIndex]);
+            IntExpr[] buttonPressesArray = counterButtons.toArray(new IntExpr[0]);
+            IntExpr sumOfButtonPresses = (IntExpr) ctx.mkAdd(buttonPressesArray);
+            
+            BoolExpr equation = ctx.mkEq(targetValue, sumOfButtonPresses);
+            opt.Add(equation);
         }
-    }
-
-    private boolean statesAreEqual(int[] state1, int[] state2) {
-        if ( state1.length != state2.length ) {
-            return false;
+        
+        // Add constraint: all button presses must be non-negative
+        IntExpr zero = ctx.mkInt(0);
+        for (IntExpr buttonVar : buttonVars) {
+            BoolExpr nonNegative = ctx.mkGe(buttonVar, zero);
+            opt.Add(nonNegative);
         }
-        for ( int i = 0; i < state1.length; i++ ){
-            if ( state1[i] != state2[i] ) { 
-                return false;
-            }
+        
+        // Define total presses as sum of all button variables
+        IntExpr sumOfAllButtonVars = (IntExpr) ctx.mkAdd(buttonVars);
+        BoolExpr totalPressesEq = ctx.mkEq(presses, sumOfAllButtonVars);
+        opt.Add(totalPressesEq);
+        
+        // Minimize total presses
+        opt.MkMinimize(presses);
+        
+        // Check and get result
+        Status status = opt.Check();
+        
+        if (status == Status.SATISFIABLE) {
+            Model model = opt.getModel();
+            IntNum outputValue = (IntNum) model.evaluate(presses, false);
+            return outputValue.getInt();
+        } else if (status == Status.UNSATISFIABLE) {
+            System.out.println("Problem is UNSATISFIABLE (no solution exists).");
+            return -1;
+        } else {
+            System.out.println("Optimization could not be determined (" + status + ").");
+            return -1;
         }
-        return true;
     }
 
     private class Machine {
