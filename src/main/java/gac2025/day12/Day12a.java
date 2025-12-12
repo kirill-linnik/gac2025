@@ -81,7 +81,103 @@ public class Day12a extends Base {
     }
 
     private boolean getCanFillShapeWithPresents(Shape shape, List<Present> presents) {
+        // Create grid to track which cells are occupied
+        boolean[][] grid = new boolean[shape.height][shape.width];
+
+        // Build list of all pieces to place
+        List<PresentPiece> piecesToPlace = new ArrayList<>();
+        for (int i = 0; i < shape.presentCount.length; i++) {
+            int count = shape.presentCount[i];
+            if (count > 0) {
+                final int presentIndex = i;
+                Present present = presents.stream()
+                        .filter(p -> p.presentIndex == presentIndex)
+                        .findFirst()
+                        .orElse(null);
+                if (present != null) {
+                    // Convert all transformations to point lists
+                    List<List<Point>> transformations = new ArrayList<>();
+                    for (PresentShape ps : present.shapes) {
+                        transformations.add(shapeToPoints(ps.shape));
+                    }
+                    for (int c = 0; c < count; c++) {
+                        piecesToPlace.add(new PresentPiece(transformations));
+                    }
+                }
+            }
+        }
+
+        // Try to place all pieces using backtracking
+        return backtrack(grid, piecesToPlace, 0);
+    }
+
+    private boolean backtrack(boolean[][] grid, List<PresentPiece> pieces, int pieceIndex) {
+        // Base case: all pieces placed successfully
+        if (pieceIndex >= pieces.size()) {
+            return true;
+        }
+
+        PresentPiece piece = pieces.get(pieceIndex);
+
+        // Try each transformation of this piece
+        for (List<Point> transformation : piece.transformations) {
+            // Try placing at each position in the grid
+            for (int row = 0; row < grid.length; row++) {
+                for (int col = 0; col < grid[0].length; col++) {
+                    // Check if we can place the piece at this position
+                    if (canPlace(grid, transformation, row, col)) {
+                        // Place the piece
+                        place(grid, transformation, row, col, true);
+
+                        // Recurse to place next piece
+                        if (backtrack(grid, pieces, pieceIndex + 1)) {
+                            return true;
+                        }
+
+                        // Backtrack: remove the piece
+                        place(grid, transformation, row, col, false);
+                    }
+                }
+            }
+        }
+
+        return false; // Couldn't place this piece anywhere
+    }
+
+    private boolean canPlace(boolean[][] grid, List<Point> shape, int startRow, int startCol) {
+        for (Point p : shape) {
+            int row = startRow + p.y;
+            int col = startCol + p.x;
+
+            // Check bounds
+            if (row < 0 || row >= grid.length || col < 0 || col >= grid[0].length) {
+                return false;
+            }
+
+            // Check if cell is already occupied
+            if (grid[row][col]) {
+                return false;
+            }
+        }
         return true;
+    }
+
+    private void place(boolean[][] grid, List<Point> shape, int startRow, int startCol, boolean occupy) {
+        for (Point p : shape) {
+            grid[startRow + p.y][startCol + p.x] = occupy;
+        }
+    }
+
+    private List<Point> shapeToPoints(boolean[][] shape) {
+        List<Point> points = new ArrayList<>();
+        for (int row = 0; row < shape.length; row++) {
+            for (int col = 0; col < shape[row].length; col++) {
+                if (shape[row][col]) {
+                    points.add(new Point(col, row));
+                }
+            }
+        }
+        return points;
     }
 
     private int getTotalPresentArea(Shape shape, List<Present> presents) {
@@ -197,6 +293,25 @@ public class Day12a extends Base {
             this.height = height;
             this.shapeArea = width * height;
             this.presentCount = presentCount;
+        }
+    }
+
+    private class Point {
+
+        int x, y;
+
+        Point(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    private class PresentPiece {
+
+        List<List<Point>> transformations;
+
+        PresentPiece(List<List<Point>> transformations) {
+            this.transformations = transformations;
         }
     }
 }
